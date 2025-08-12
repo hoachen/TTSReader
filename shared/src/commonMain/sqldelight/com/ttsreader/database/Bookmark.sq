@@ -1,0 +1,41 @@
+CREATE TABLE bookmark (
+    id TEXT PRIMARY KEY,
+    text_id TEXT NOT NULL,
+    title TEXT NOT NULL,
+    content TEXT NOT NULL,
+    position INTEGER NOT NULL,
+    audio_position INTEGER,
+    note TEXT DEFAULT '',
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    tags TEXT DEFAULT '' -- JSON array as string
+);
+
+CREATE INDEX idx_bookmark_text_id ON bookmark(text_id);
+CREATE INDEX idx_bookmark_created_at ON bookmark(created_at);
+
+insertBookmark:
+INSERT INTO bookmark(id, text_id, title, content, position, audio_position, note, created_at, updated_at, tags)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateBookmark:
+UPDATE bookmark
+SET title = ?, content = ?, position = ?, audio_position = ?, note = ?, updated_at = ?, tags = ?
+WHERE id = ?;
+
+deleteBookmark:
+DELETE FROM bookmark WHERE id = ?;
+
+getBookmarksForText:
+SELECT * FROM bookmark WHERE text_id = ? ORDER BY position ASC;
+
+getBookmarkById:
+SELECT * FROM bookmark WHERE id = ?;
+
+getAllBookmarks:
+SELECT * FROM bookmark ORDER BY updated_at DESC;
+
+searchBookmarks:
+SELECT * FROM bookmark 
+WHERE title LIKE '%' || ? || '%' OR content LIKE '%' || ? || '%' OR note LIKE '%' || ? || '%'
+ORDER BY updated_at DESC;

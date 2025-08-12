@@ -1,0 +1,31 @@
+CREATE TABLE settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+
+CREATE TABLE app_settings (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    settings_json TEXT NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+
+insertSetting:
+INSERT OR REPLACE INTO settings(key, value, updated_at)
+VALUES (?, ?, ?);
+
+getSetting:
+SELECT value FROM settings WHERE key = ?;
+
+getAllSettings:
+SELECT * FROM settings ORDER BY key;
+
+deleteSetting:
+DELETE FROM settings WHERE key = ?;
+
+saveAppSettings:
+INSERT OR REPLACE INTO app_settings(id, settings_json, updated_at)
+VALUES (1, ?, ?);
+
+getAppSettings:
+SELECT settings_json FROM app_settings WHERE id = 1;
