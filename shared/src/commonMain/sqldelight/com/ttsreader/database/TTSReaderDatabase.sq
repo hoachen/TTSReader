@@ -1,0 +1,135 @@
+CREATE TABLE tts_config (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    provider TEXT NOT NULL,
+    api_key TEXT,
+    group_id TEXT,
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
+);
+
+CREATE TABLE ai_config (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    provider TEXT NOT NULL,
+    api_key TEXT,
+    model TEXT,
+    fallback_rules INTEGER DEFAULT 1,
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
+);
+
+CREATE TABLE document (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    content TEXT,
+    file_path TEXT,
+    file_type TEXT,
+    file_size INTEGER,
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    last_read_position INTEGER DEFAULT 0,
+    reading_progress REAL DEFAULT 0.0
+);
+
+CREATE TABLE bookmark (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    document_id INTEGER NOT NULL,
+    position INTEGER NOT NULL,
+    note TEXT,
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    FOREIGN KEY (document_id) REFERENCES document(id) ON DELETE CASCADE
+);
+
+CREATE TABLE pronunciation_dict (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    original_word TEXT NOT NULL,
+    pronunciation TEXT NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
+);
+
+CREATE TABLE audio_cache (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    cache_key TEXT UNIQUE NOT NULL,
+    file_path TEXT NOT NULL,
+    text_hash TEXT NOT NULL,
+    voice_id TEXT NOT NULL,
+    parameters_hash TEXT NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    accessed_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
+);
+
+-- TTS Config operations
+getTTSConfig:
+SELECT * FROM tts_config ORDER BY id DESC LIMIT 1;
+
+saveTTSConfig:
+INSERT OR REPLACE INTO tts_config (id, provider, api_key, group_id, updated_at)
+VALUES ((SELECT id FROM tts_config ORDER BY id DESC LIMIT 1), ?, ?, ?, strftime('%s', 'now'));
+
+-- AI Config operations
+getAIConfig:
+SELECT * FROM ai_config ORDER BY id DESC LIMIT 1;
+
+saveAIConfig:
+INSERT OR REPLACE INTO ai_config (id, provider, api_key, model, fallback_rules, updated_at)
+VALUES ((SELECT id FROM ai_config ORDER BY id DESC LIMIT 1), ?, ?, ?, ?, strftime('%s', 'now'));
+
+-- Document operations
+getAllDocuments:
+SELECT * FROM document ORDER BY updated_at DESC;
+
+getDocumentById:
+SELECT * FROM document WHERE id = ?;
+
+insertDocument:
+INSERT INTO document (title, content, file_path, file_type, file_size)
+VALUES (?, ?, ?, ?, ?);
+
+updateDocumentProgress:
+UPDATE document SET last_read_position = ?, reading_progress = ?, updated_at = strftime('%s', 'now')
+WHERE id = ?;
+
+updateDocumentContent:
+UPDATE document SET content = ?, updated_at = strftime('%s', 'now')
+WHERE id = ?;
+
+deleteDocument:
+DELETE FROM document WHERE id = ?;
+
+-- Bookmark operations
+getBookmarksByDocument:
+SELECT * FROM bookmark WHERE document_id = ? ORDER BY position;
+
+insertBookmark:
+INSERT INTO bookmark (document_id, position, note)
+VALUES (?, ?, ?);
+
+deleteBookmark:
+DELETE FROM bookmark WHERE id = ?;
+
+-- Pronunciation dictionary operations
+getAllPronunciations:
+SELECT * FROM pronunciation_dict ORDER BY original_word;
+
+insertPronunciation:
+INSERT OR REPLACE INTO pronunciation_dict (original_word, pronunciation)
+VALUES (?, ?);
+
+deletePronunciation:
+DELETE FROM pronunciation_dict WHERE original_word = ?;
+
+-- Audio cache operations
+getAudioCacheEntry:
+SELECT * FROM audio_cache WHERE cache_key = ?;
+
+insertAudioCache:
+INSERT OR REPLACE INTO audio_cache (cache_key, file_path, text_hash, voice_id, parameters_hash)
+VALUES (?, ?, ?, ?, ?);
+
+deleteAudioCache:
+DELETE FROM audio_cache WHERE cache_key = ?;
+
+clearAudioCache:
+DELETE FROM audio_cache;
+
+getCacheSize:
+SELECT COUNT(*) as count, SUM(file_size) as total_size FROM audio_cache;
